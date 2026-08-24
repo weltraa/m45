@@ -10,7 +10,7 @@
 #include <string>
 #include <utility>
 
-namespace m45::argpaser {
+namespace m45::argparse {
   class parser {
     private:
       const std::string name_;
