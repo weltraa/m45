@@ -9,7 +9,7 @@
 using namespace m45;
 
 void printVersion(const m45::argparse::Invocation&) {
-  std::cout << "hello - 1.0.0\n";
+  std::cout << "hello -   1.0.0\n";
 }
 
 int main(int argc, char const *argv[]) {
