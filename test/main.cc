@@ -13,14 +13,13 @@ void printVersion(const m45::argparse::Invocation&) {
 }
 
 int main(int argc, char const *argv[]) {
-
   argparse::parser parser{"hello"};
   parser
     .about("a compiler.")
     .add_flag(
-      "version", 'v', {},
+      "--version", std::nullopt,
       "Print version information",
-      printVersion
+      false, {1, 1}, printVersion
     );
 
   auto result = parser.parse_args(argc, argv);

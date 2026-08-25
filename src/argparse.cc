@@ -13,34 +13,36 @@
 namespace m45::argparse {
   // utilities:
   namespace {
-    bool is_hyphenated_alpha(std::string_view str) noexcept {
-      if (str.empty()) return false;
-      if (!std::isalpha(static_cast<unsigned char>(str.front()))) return false;
-      if (str.back() == '-') return false;
+    bool is_dashed_name(std::string_view str) noexcept {
+      if (!str.starts_with("--")) return false;
 
-      for (char ch : str)
+      const auto suffix = str.substr(2);
+      if (suffix.empty()) return false;
+      if (suffix.back() == '-') return false;
+
+      for (char ch : suffix)
         if (!std::isalpha(static_cast<unsigned char>(ch)) && ch != '-') 
           return false;
 
       return true;
     }
+
+    bool is_valid_short_name(std::string_view short_name) {
+      return
+          short_name.size() == 2 &&
+          short_name[0] == '-' &&
+          std::isalpha(static_cast<unsigned char>(short_name[1]));
+    }
   }
 
   // private:
-  const Argument* parser::find_by_name_or_aliases_(
+  const Argument* parser::find_by_name_(
     std::string_view token, const Argument& arg
   ) const {
-    // TODO: avoid magical number: '3'
-    if (token.size() >= 3) {
-      if (token[0] != '-' && token[1] != '-') return nullptr;
-      if (token.substr(2) == arg.name) return &arg;
-    }
-    if (token.size() == 2) {
-      if (token[0] != '-') return nullptr;
-      if (arg.short_name && token[1] == *arg.short_name) return &arg;
-    }
-
+    if (token == arg.name) return &arg;
+    if (arg.short_name && token == *arg.short_name) return &arg;
     for (const auto& alias : arg.aliases) if (token == alias) return &arg;
+
     return nullptr;
   }
 
@@ -52,29 +54,31 @@ namespace m45::argparse {
   }
 
   parser& parser::add_flag(
-    std::string name,
-    ShortName short_name,
-    StrList aliases,
+    std::string name, std::optional<std::string> short_name,
     std::string description,
+    bool negatable,
+    Arity arity,
     Action action
   ) {
-    if (!is_hyphenated_alpha(name))
+    if (!is_dashed_name(name))
       throw std::invalid_argument(std::format("invalid flag name '{}'", name));
-    if (short_name && !std::isalpha(static_cast<unsigned char>(*short_name)))
+    if(short_name && !is_valid_short_name(*short_name))
       throw std::invalid_argument(
-        std::format("invalid short name '{}': must be alphabetic", *short_name)
+        std::format(
+          "invalid flag short name '{}': must be alphabetic",
+          *short_name
+        )
       );
-    for(const auto& alias : aliases)
-      if(!is_hyphenated_alpha(alias))
-        throw std::invalid_argument(
-          std::format("invalid flag name '{}'", name)
-        );
 
     args_.push_back(Argument::flag(
-      std::move(name), short_name, std::move(aliases),
+      std::move(name),
+      std::move(short_name),
       std::move(description),
+      negatable,
+      std::move(arity),
       std::move(action)
     ));
+
     return *this;
   }
 
@@ -91,7 +95,7 @@ namespace m45::argparse {
       std::string_view token = argv[i];
 
       for (const auto& arg : args_)
-        if ((arg_match = find_by_name_or_aliases_(token, arg))) break;
+        if ((arg_match = find_by_name_(token, arg))) break;
     
       if (!arg_match) return ParseResult{
         .success = false,
