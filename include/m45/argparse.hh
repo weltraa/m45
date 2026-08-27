@@ -19,16 +19,19 @@
 
 namespace m45::argparse {
   using StrList = std::vector<std::string>;
+  using ParsedValue = std::variant<std::string, int, bool>;
 
   struct Arity {
-    std::uint16_t min;
-    std::optional<std::uint16_t> max;
+    // 'min = 0' means the argument is optional
+    // 'max = 1' means it may not be repeated
+    std::uint16_t min = 0;
+    std::optional<std::uint16_t> max = 1;
   };
 
   struct Argument;
   struct Invocation {
     const Argument& arg_metadata;
-    std::span<const std::string_view> values;
+    std::span<const ParsedValue> values;
   };
   using Action = std::function<void(const Invocation&)>;
 
@@ -36,11 +39,11 @@ namespace m45::argparse {
     bool negatable = false;
   };
   struct ValuedArgument {
-    enum class ValueKind {
+    enum class ValuedArgType {
       String, Integer, Boolean
     };
 
-    ValueKind value_kind = ValueKind::String;
+    ValuedArgType value_kind = ValuedArgType::String;
   };
   struct CommandArgument {};
   using ArgumentKind = std::variant<
@@ -82,6 +85,21 @@ namespace m45::argparse {
 
         return arg;
       }
+
+      static Argument valued(
+        std::string name,
+        ValuedArgument::ValuedArgType value_type,
+        Arity arity,
+        Action action
+      ) {
+        Argument arg;
+        arg.name  = std::move(name);
+        arg.kind  = ValuedArgument{.value_kind = value_type};
+        arg.arity = std::move(arity);
+        arg.action = std::move(action);
+
+        return arg;
+      }
     //}
   };
 
@@ -90,6 +108,11 @@ namespace m45::argparse {
       NONE,
       NO_ARGS,
       UNKNOWN_ARG,
+      MISSING_VALUE,
+      EMPTY_VALUE,
+      INVALID_VALUE,
+      MISSING_OCCURRENCES,
+      TOO_MANY_OCCURRENCES
     };
 
     bool success = true;
@@ -110,6 +133,9 @@ namespace m45::argparse {
       const Argument* find_by_name_(
         std::string_view token, const Argument& arg
       ) const;
+      std::pair<std::string, std::optional<std::string>> split_key_and_value_(
+        std::string_view token, const Argument& arg
+      ) const;
     public:
       parser() = delete;
       explicit parser(std::string name) : name_(std::move(name)) {}
@@ -119,6 +145,12 @@ namespace m45::argparse {
         std::string name, std::optional<std::string> short_name,
         std::string description,
         bool negatable,
+        Arity arity,
+        Action action
+      );
+      parser& add_valued(
+        std::string name,
+        ValuedArgument::ValuedArgType value_type,
         Arity arity,
         Action action
       );
