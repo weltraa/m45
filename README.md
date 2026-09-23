@@ -21,7 +21,7 @@ For example, suppose `m45::frozen_string` provides an abstraction that is unavai
 
 ## Documentation
 
-- [`frozen_string`](include/frozen_string/about.md) — Fixed-size, immutable strings with `constexpr` support.
+- [`frozen_string`](include/frozen_string/README.md) — Fixed-size, immutable strings with `constexpr` support.
 
 ## License
 
