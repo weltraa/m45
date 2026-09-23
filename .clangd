@@ -1,0 +1,15 @@
+CompileFlags:
+  Add:
+    - -std=c++26
+    - -Wall
+    - -Wextra
+  Remove:
+    - -fconcepts-diagnostics-depth=*
+    - -fanalyzer
+
+Diagnostics:
+  UnusedIncludes: Strict
+
+InlayHints:
+  ParameterNames: No
+  DeducedTypes: Yes
